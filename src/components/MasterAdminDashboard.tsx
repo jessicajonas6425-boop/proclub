@@ -1073,9 +1073,13 @@ export function MasterAdminDashboard({
                         </button>
                       )}
                       {match.status === "encerrado" && (
-                        <span className="text-[8px] uppercase font-mono font-bold text-zinc-500 border border-white/5 bg-zinc-950 px-2.5 py-1 rounded-none inline-block tracking-widest select-none">
-                          ✓ ENCERRADO
-                        </span>
+                        <button
+                          id={`edit-match-btn-${match.id}`}
+                          onClick={() => setLiveMatchId(match.id)}
+                          className="w-full bg-zinc-800 text-white hover:bg-zinc-700 px-3 py-1.5 rounded-none flex items-center justify-center gap-1 font-sans font-extrabold text-[9px] tracking-wider uppercase cursor-pointer"
+                        >
+                          <Edit size={10} /> Editar Súmula
+                        </button>
                       )}
                       <button
                         id={`del-match-${match.id}`}
