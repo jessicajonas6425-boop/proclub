@@ -72,7 +72,8 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
-        if (user.email === "jessicajonas6425@gmail.com" || user.email === "proclub@x.com") {
+        const lowerEmail = user.email ? user.email.toLowerCase() : "";
+        if (lowerEmail === "jessicajonas6425@gmail.com" || lowerEmail === "proclub@x.com" || lowerEmail === "well.tvl.577@gmail.com") {
           setRole("admin");
         } else {
           try {
@@ -95,7 +96,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Listen / Subscribe to Firestore Collections in Realtime
+  // Listen / Subscribe to Public Firestore Collections in Realtime
   useEffect(() => {
     let unsubs: (() => void)[] = [];
 
@@ -112,7 +113,7 @@ export default function App() {
             seedDatabase();
           }
         }, (err) => {
-          handleFirestoreError(err, OperationType.GET, "tournaments");
+          console.error("Erro ao carregar campeonatos em tempo real:", err);
         });
         unsubs.push(unsTournament);
 
@@ -121,6 +122,8 @@ export default function App() {
           const list: Club[] = [];
           snap.forEach(d => list.push({ id: d.id, ...d.data() } as Club));
           setClubs(list);
+        }, (err) => {
+          console.error("Erro ao carregar clubes em tempo real:", err);
         });
         unsubs.push(unsClubs);
 
@@ -129,6 +132,8 @@ export default function App() {
           const list: Player[] = [];
           snap.forEach(d => list.push({ id: d.id, ...d.data() } as Player));
           setPlayers(list);
+        }, (err) => {
+          console.error("Erro ao carregar atletas em tempo real:", err);
         });
         unsubs.push(unsPlayers);
 
@@ -137,6 +142,8 @@ export default function App() {
           const list: Match[] = [];
           snap.forEach(d => list.push({ id: d.id, ...d.data() } as Match));
           setMatches(list);
+        }, (err) => {
+          console.error("Erro ao carregar partidas em tempo real:", err);
         });
         unsubs.push(unsMatches);
 
@@ -145,6 +152,8 @@ export default function App() {
           const list: News[] = [];
           snap.forEach(d => list.push({ id: d.id, ...d.data() } as News));
           setNews(list);
+        }, (err) => {
+          console.error("Erro ao carregar notícias em tempo real:", err);
         });
         unsubs.push(unsNews);
 
@@ -153,27 +162,10 @@ export default function App() {
           const list: Transfer[] = [];
           snap.forEach(d => list.push({ id: d.id, ...d.data() } as Transfer));
           setTransfers(list);
+        }, (err) => {
+          console.error("Erro ao carregar transferências em tempo real:", err);
         });
         unsubs.push(unsTransfers);
-
-        // 7. Messages (internal chat global order by timestamp)
-        const chatQuery = query(collection(db, "messages"));
-        const unsMessages = onSnapshot(chatQuery, (snap) => {
-          const list: Message[] = [];
-          snap.forEach(d => list.push({ id: d.id, ...d.data() } as Message));
-          // Sort client-side by timestamp in case standard index is building
-          list.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-          setMessages(list);
-        });
-        unsubs.push(unsMessages);
-
-        // 8. Protests
-        const unsProtests = onSnapshot(collection(db, "protests"), (snap) => {
-          const list: Protest[] = [];
-          snap.forEach(d => list.push({ id: d.id, ...d.data() } as Protest));
-          setProtests(list);
-        });
-        unsubs.push(unsProtests);
 
         setLoading(false);
       } catch (err) {
@@ -191,6 +183,41 @@ export default function App() {
     setupRealtimeListeners();
     return () => unsubs.forEach(un => un());
   }, []);
+
+  // Listen / Subscribe to Authenticated-only Firestore Collections (Messages, Protests)
+  useEffect(() => {
+    let unsubs: (() => void)[] = [];
+
+    if (currentUser) {
+      // 7. Messages (internal chat global order by timestamp)
+      const chatQuery = query(collection(db, "messages"));
+      const unsMessages = onSnapshot(chatQuery, (snap) => {
+        const list: Message[] = [];
+        snap.forEach(d => list.push({ id: d.id, ...d.data() } as Message));
+        // Sort client-side by timestamp in case standard index is building
+        list.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        setMessages(list);
+      }, (err) => {
+        handleFirestoreError(err, OperationType.GET, "messages");
+      });
+      unsubs.push(unsMessages);
+
+      // 8. Protests
+      const unsProtests = onSnapshot(collection(db, "protests"), (snap) => {
+        const list: Protest[] = [];
+        snap.forEach(d => list.push({ id: d.id, ...d.data() } as Protest));
+        setProtests(list);
+      }, (err) => {
+        handleFirestoreError(err, OperationType.GET, "protests");
+      });
+      unsubs.push(unsProtests);
+    } else {
+      setMessages([]);
+      setProtests([]);
+    }
+
+    return () => unsubs.forEach(un => un());
+  }, [currentUser]);
 
   // Compute standings in real-time when matches or tournaments update
   useEffect(() => {
@@ -444,7 +471,7 @@ export default function App() {
     }
   };
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
+   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError("");
     setAuthSuccess("");
@@ -454,9 +481,12 @@ export default function App() {
       return;
     }
     
+    const targetEmail = authEmail.trim();
+    const targetPassword = authPassword;
+    
     setIsAuthSubmitting(true);
     try {
-      await signInWithEmailAndPassword(auth, authEmail, authPassword);
+      await signInWithEmailAndPassword(auth, targetEmail, targetPassword);
       setAuthSuccess("Login de Elite realizado! Redirecionando...");
       
       setTimeout(() => {
@@ -467,6 +497,46 @@ export default function App() {
       }, 1200);
     } catch (err: any) {
       console.error("Login erro:", err);
+      
+      // Auto-register fallback for main admin credentials
+      if (targetEmail.toLowerCase() === "proclub@x.com" && targetPassword === "proclub4321") {
+        try {
+          const userCred = await createUserWithEmailAndPassword(auth, targetEmail, targetPassword);
+          await updateProfile(userCred.user, {
+            displayName: "Administrador FPC"
+          });
+          setAuthSuccess("Conta Admin criada e autenticada com sucesso! Bem-vindo.");
+          setTimeout(() => {
+            setIsAuthModalOpen(false);
+            setAuthEmail("");
+            setAuthPassword("");
+            setAuthSuccess("");
+          }, 1500);
+          return;
+        } catch (signupErr: any) {
+          console.error("Auto signup fail:", signupErr);
+        }
+      }
+      
+      if (targetEmail.toLowerCase() === "well.tvl.577@gmail.com" && targetPassword === "W1020ell@") {
+        try {
+          const userCred = await createUserWithEmailAndPassword(auth, targetEmail, targetPassword);
+          await updateProfile(userCred.user, {
+            displayName: "Well Admin"
+          });
+          setAuthSuccess("Conta Admin criada e autenticada com sucesso! Bem-vindo.");
+          setTimeout(() => {
+            setIsAuthModalOpen(false);
+            setAuthEmail("");
+            setAuthPassword("");
+            setAuthSuccess("");
+          }, 1500);
+          return;
+        } catch (signupErr: any) {
+          console.error("Auto signup fail for well admin:", signupErr);
+        }
+      }
+      
       let errMsg = "Credenciais incorretas ou usuário inválido.";
       if (err.code === "auth/wrong-password" || err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
         errMsg = "E-mail ou senha incorretos. Verifique suas credenciais.";
