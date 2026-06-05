@@ -1,0 +1,8 @@
+{
+  "name": "Federação Pro Clubs",
+  "description": "A maior e mais moderna plataforma para campeonatos de Pro Clubs do Brasil, com atualizações em tempo real, painéis de gerenciamento para times e administradores master, mercado de transferências, Live Match, estatísticas e muito mais.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

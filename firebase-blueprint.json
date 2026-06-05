@@ -1,0 +1,215 @@
+{
+  "entities": {
+    "Admin": {
+      "title": "Admin Record",
+      "description": "User identifier to check if they have master administrator access",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "description": "Email address of the administrator" },
+        "createdAt": { "type": "string", "description": "When they became administrator" }
+      },
+      "required": ["email"]
+    },
+    "Club": {
+      "title": "Club Definition",
+      "description": "A Virtual Pro Clubs team",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the club" },
+        "logo": { "type": "string", "description": "Logo URL or base64 or custom vector" },
+        "city": { "type": "string", "description": "Home city of the club" },
+        "state": { "type": "string", "description": "State code of the club" },
+        "primaryKit": { "type": "string", "description": "Primary kit colors" },
+        "secondaryKit": { "type": "string", "description": "Secondary kit colors" },
+        "manager": { "type": "string", "description": "Name of manager/technic" },
+        "captain": { "type": "string", "description": "Name of captain" },
+        "creatorId": { "type": "string", "description": "UID of the club administrator" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["name", "city", "state", "creatorId"]
+    },
+    "Player": {
+      "title": "Player Shape",
+      "description": "A soccer player registered under a club",
+      "type": "object",
+      "properties": {
+        "clubId": { "type": "string", "description": "The ID of the club they play for" },
+        "name": { "type": "string", "description": "Full name" },
+        "nickname": { "type": "string", "description": "In-game nickname" },
+        "position": { "type": "string", "description": "Position on pitch", "enum": ["Goleiro", "Zagueiro", "Lateral", "Volante", "Meio Campo", "Meia Atacante", "Ponta", "Atacante"] },
+        "number": { "type": "number", "description": "Jersey number" },
+        "photo": { "type": "string", "description": "Photo URL" },
+        "nationality": { "type": "string", "description": "Country of origin" },
+        "birthDate": { "type": "string", "description": "Date of birth" },
+        "eaId": { "type": "string", "description": "EA Sports FC game ID" },
+        "goals": { "type": "number", "description": "League goals scored" },
+        "assists": { "type": "number", "description": "League assists provided" },
+        "saves": { "type": "number", "description": "Saves made" },
+        "yellowCards": { "type": "number", "description": "Yellow cards received" },
+        "redCards": { "type": "number", "description": "Red cards received" }
+      },
+      "required": ["clubId", "name", "nickname", "position", "number", "eaId"]
+    },
+    "Tournament": {
+      "title": "Championship or Tournament",
+      "description": "A federation competition like Serie A, B, Copa etc.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Tournament name" },
+        "logo": { "type": "string", "description": "Logo URL" },
+        "type": { "type": "string", "enum": ["Liga", "Copa", "Super Copa", "Mata-Mata", "Pontos Corridos"] },
+        "season": { "type": "string", "description": "Championship season" },
+        "rules": { "type": "string", "description": "Brief tournament regulations" },
+        "numTeams": { "type": "number", "description": "Limit of participating clubs" },
+        "teams": { "type": "array", "description": "List of invited/joined team IDs" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "type", "season", "numTeams"]
+    },
+    "Match": {
+      "title": "Match fixture and log",
+      "description": "A single match between two clubs in a tournament",
+      "type": "object",
+      "properties": {
+        "tournamentId": { "type": "string" },
+        "round": { "type": "number" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "stadium": { "type": "string" },
+        "homeTeamId": { "type": "string" },
+        "homeTeamName": { "type": "string" },
+        "homeTeamLogo": { "type": "string" },
+        "awayTeamId": { "type": "string" },
+        "awayTeamName": { "type": "string" },
+        "awayTeamLogo": { "type": "string" },
+        "homeScore": { "type": "number" },
+        "awayScore": { "type": "number" },
+        "status": { "type": "string", "enum": ["agendado", "andamento", "encerrado"] },
+        "liveMinutes": { "type": "number" },
+        "stats": { "type": "object", "description": "Posse de bola, finalizações etc." },
+        "events": { "type": "array", "description": "Gols, cartões marcados" }
+      },
+      "required": ["tournamentId", "round", "homeTeamId", "awayTeamId", "status"]
+    },
+    "Standing": {
+      "title": "Standing Row",
+      "description": "Row of stats of a team inside a given tournament",
+      "type": "object",
+      "properties": {
+        "tournamentId": { "type": "string" },
+        "clubId": { "type": "string" },
+        "clubName": { "type": "string" },
+        "clubLogo": { "type": "string" },
+        "played": { "type": "number" },
+        "points": { "type": "number" },
+        "won": { "type": "number" },
+        "drawn": { "type": "number" },
+        "lost": { "type": "number" },
+        "goalsFor": { "type": "number" },
+        "goalsAgainst": { "type": "number" },
+        "goalDifference": { "type": "number" }
+      },
+      "required": ["tournamentId", "clubId", "played", "points"]
+    },
+    "News": {
+      "title": "News article",
+      "description": "Federation dynamic articles",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "image": { "type": "string" },
+        "date": { "type": "string" },
+        "author": { "type": "string" }
+      },
+      "required": ["title", "content", "date"]
+    },
+    "Transfer": {
+      "title": "Player Transfer Log",
+      "description": "A record of transfer from one club to another",
+      "type": "object",
+      "properties": {
+        "playerId": { "type": "string" },
+        "playerName": { "type": "string" },
+        "playerNickname": { "type": "string" },
+        "fromClubId": { "type": "string" },
+        "fromClubName": { "type": "string" },
+        "toClubId": { "type": "string" },
+        "toClubName": { "type": "string" },
+        "value": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "completed", "cancelled"] }
+      },
+      "required": ["playerId", "playerName", "fromClubId", "toClubId", "status"]
+    },
+    "Message": {
+      "title": "Chat Message",
+      "description": "Internal chat messages between manager/master admins",
+      "type": "object",
+      "properties": {
+        "senderName": { "type": "string" },
+        "senderRole": { "type": "string" },
+        "senderClubName": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["senderName", "text", "timestamp"]
+    },
+    "Protest": {
+      "title": "Protest Record",
+      "description": "A file for manager dispute reports",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "clubId": { "type": "string" },
+        "clubName": { "type": "string" },
+        "status": { "type": "string", "enum": ["aberto", "analise", "resolvido"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "description", "clubId", "status"]
+    }
+  },
+  "firestore": {
+    "admins/{adminId}": {
+      "schema": { "$ref": "#/entities/Admin" },
+      "description": "Master Administrators mapping list"
+    },
+    "clubs/{clubId}": {
+      "schema": { "$ref": "#/entities/Club" },
+      "description": "Federation pro clubs teams list"
+    },
+    "players/{playerId}": {
+      "schema": { "$ref": "#/entities/Player" },
+      "description": "Active in-game football virtual athletes associated in clusters of clubs"
+    },
+    "tournaments/{tournamentId}": {
+      "schema": { "$ref": "#/entities/Tournament" },
+      "description": "List of active divisions and cups"
+    },
+    "matches/{matchId}": {
+      "schema": { "$ref": "#/entities/Match" },
+      "description": "Individual championship scheduled and run matches"
+    },
+    "standings/{standingId}": {
+      "schema": { "$ref": "#/entities/Standing" },
+      "description": "Computed points table indexes per club per league"
+    },
+    "news/{newsId}": {
+      "schema": { "$ref": "#/entities/News" },
+      "description": "Dynamic portal news feed"
+    },
+    "transfers/{transferId}": {
+      "schema": { "$ref": "#/entities/Transfer" },
+      "description": "Public federation player market listings"
+    },
+    "messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Internal global chat portal"
+    },
+    "protests/{protestId}": {
+      "schema": { "$ref": "#/entities/Protest" },
+      "description": "Match board conflict resolution protests"
+    }
+  }
+}

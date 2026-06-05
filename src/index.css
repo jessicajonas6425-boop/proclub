@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Montserrat:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-display: "Cinzel", serif;
+  --font-sans: "Montserrat", sans-serif;
+  --font-mono: "Fira Code", monospace;
+
+  --color-gold: #D4AF37;
+  --color-gold-light: #E5C048;
+  --color-gold-dark: #9A7B1C;
+  --color-gold-muted: rgba(212, 175, 55, 0.2);
+}
+
+/* Custom Sophisticated Dark Utility Classes */
+@layer utilities {
+  .gold-glow {
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.4), 0 0 20px rgba(212, 175, 55, 0.2);
+  }
+  
+  .border-gold-glow {
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
+  }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-panel-gold {
+    background: rgba(212, 175, 55, 0.02);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(212, 175, 55, 0.15);
+  }
+
+  .glass-panel-hover {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .glass-panel-hover:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(212, 175, 55, 0.3);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7), 0 0 15px rgba(212, 175, 55, 0.1);
+    transform: translateY(-2px);
+  }
+}
+
+/* Base custom resets or scrollbar to match Sophisticated Dark style */
+@layer base {
+  body {
+    background-color: #050505;
+    color: #f3f4f6;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Custom luxury scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #050505;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(212, 175, 55, 0.2);
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(212, 175, 55, 0.4);
+  }
+}
