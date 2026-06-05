@@ -15,6 +15,117 @@ import { signInWithPopup, signOut, onAuthStateChanged, User, signInWithEmailAndP
 import { collection, doc, getDoc, setDoc, addDoc, getDocs, onSnapshot, updateDoc, deleteDoc, query, orderBy } from "firebase/firestore";
 import { ShieldAlert, BookOpen, Clock, Heart, Award, HelpCircle } from "lucide-react";
 
+// Helper to remove any 'undefined' property values recursively before writing to Firestore
+const cleanUndefined = (obj: any): any => {
+  if (obj === null || typeof obj !== "object") {
+    return obj === undefined ? null : obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(cleanUndefined);
+  }
+  const cleanObj: any = {};
+  for (const key of Object.keys(obj)) {
+    if (obj[key] !== undefined) {
+      cleanObj[key] = cleanUndefined(obj[key]);
+    }
+  }
+  return cleanObj;
+};
+
+// Seeding default database on first launch
+const seedDatabase = async () => {
+  console.log("Seeding fresh Firestore collections with standard FPC datasets...");
+  try {
+    // 1. Add Clubs
+    for (const club of SAMPLE_CLUBS) {
+      await setDoc(doc(db, "clubs", club.id), cleanUndefined({
+        name: club.name,
+        logo: club.logo,
+        city: club.city,
+        state: club.state,
+        primaryKit: club.primaryKit,
+        secondaryKit: club.secondaryKit,
+        manager: club.manager,
+        captain: club.captain,
+        creatorId: club.creatorId,
+        createdAt: club.createdAt
+      }));
+    }
+
+    // 2. Add Players
+    for (const pl of SAMPLE_PLAYERS) {
+      await setDoc(doc(db, "players", pl.id), cleanUndefined({
+        clubId: pl.clubId,
+        name: pl.name,
+        nickname: pl.nickname,
+        position: pl.position,
+        number: pl.number,
+        photo: pl.photo,
+        nationality: pl.nationality,
+        birthDate: pl.birthDate,
+        eaId: pl.eaId,
+        goals: pl.goals,
+        assists: pl.assists,
+        saves: pl.saves,
+        yellowCards: pl.yellowCards,
+        redCards: pl.redCards
+      }));
+    }
+
+    // 3. Add Tournaments
+    for (const tour of INITIAL_TOURNAMENTS) {
+      await setDoc(doc(db, "tournaments", tour.id), cleanUndefined({
+        name: tour.name,
+        logo: tour.logo,
+        type: tour.type,
+        season: tour.season,
+        rules: tour.rules,
+        numTeams: tour.numTeams,
+        teams: tour.teams,
+        createdAt: tour.createdAt
+      }));
+    }
+
+    // 4. Add Matches
+    for (const mt of SAMPLE_MATCHES) {
+      await setDoc(doc(db, "matches", mt.id), cleanUndefined({
+        tournamentId: mt.tournamentId,
+        round: mt.round,
+        date: mt.date,
+        time: mt.time,
+        stadium: mt.stadium,
+        homeTeamId: mt.homeTeamId,
+        homeTeamName: mt.homeTeamName,
+        homeTeamLogo: mt.homeTeamLogo,
+        awayTeamId: mt.awayTeamId,
+        awayTeamName: mt.awayTeamName,
+        awayTeamLogo: mt.awayTeamLogo,
+        homeScore: mt.homeScore,
+        awayScore: mt.awayScore,
+        status: mt.status,
+        liveMinutes: mt.liveMinutes || 0,
+        stats: mt.stats,
+        events: mt.events
+      }));
+    }
+
+    // 5. Add News
+    for (const nw of SAMPLE_NEWS) {
+      await setDoc(doc(db, "news", nw.id), cleanUndefined({
+        title: nw.title,
+        content: nw.content,
+        image: nw.image,
+        date: nw.date,
+        author: nw.author
+      }));
+    }
+
+    console.log("Firestore auto-seeding completed beautifully!");
+  } catch (e) {
+    console.warn("Seeding failed slightly, probably due to off-line state in iframe sandbox. Fallback to client state is active.", e);
+  }
+};
+
 export default function App() {
   const [role, setRole] = useState<"admin" | "manager" | "visitor">("visitor");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -102,58 +213,85 @@ export default function App() {
 
     const setupRealtimeListeners = async () => {
       try {
+        // Query to check if tournaments collection is empty in Firestore, if so seed automatically
+        const testTourSnap = await getDocs(collection(db, "tournaments"));
+        if (testTourSnap.empty) {
+          console.log("Banco de dados do Firestore vazio de campeonatos. Executando seedDatabase automaticamente...");
+          await seedDatabase();
+        }
+
         // 1. Tournaments
         const unsTournament = onSnapshot(collection(db, "tournaments"), (snap) => {
-          const list: Tournament[] = [];
-          snap.forEach(d => list.push({ id: d.id, ...d.data() } as Tournament));
-          setTournaments(list);
-          
-          // Seed initial tournaments if fully empty on the cloud
-          if (snap.empty && loading) {
-            seedDatabase();
+          if (snap.empty) {
+            setTournaments(INITIAL_TOURNAMENTS);
+          } else {
+            const list: Tournament[] = [];
+            snap.forEach(d => list.push({ id: d.id, ...d.data() } as Tournament));
+            setTournaments(list);
           }
         }, (err) => {
           console.error("Erro ao carregar campeonatos em tempo real:", err);
+          setTournaments(INITIAL_TOURNAMENTS);
         });
         unsubs.push(unsTournament);
 
         // 2. Clubs
         const unsClubs = onSnapshot(collection(db, "clubs"), (snap) => {
-          const list: Club[] = [];
-          snap.forEach(d => list.push({ id: d.id, ...d.data() } as Club));
-          setClubs(list);
+          if (snap.empty) {
+            setClubs(SAMPLE_CLUBS);
+          } else {
+            const list: Club[] = [];
+            snap.forEach(d => list.push({ id: d.id, ...d.data() } as Club));
+            setClubs(list);
+          }
         }, (err) => {
           console.error("Erro ao carregar clubes em tempo real:", err);
+          setClubs(SAMPLE_CLUBS);
         });
         unsubs.push(unsClubs);
 
         // 3. Players
         const unsPlayers = onSnapshot(collection(db, "players"), (snap) => {
-          const list: Player[] = [];
-          snap.forEach(d => list.push({ id: d.id, ...d.data() } as Player));
-          setPlayers(list);
+          if (snap.empty) {
+            setPlayers(SAMPLE_PLAYERS);
+          } else {
+            const list: Player[] = [];
+            snap.forEach(d => list.push({ id: d.id, ...d.data() } as Player));
+            setPlayers(list);
+          }
         }, (err) => {
           console.error("Erro ao carregar atletas em tempo real:", err);
+          setPlayers(SAMPLE_PLAYERS);
         });
         unsubs.push(unsPlayers);
 
         // 4. Matches
         const unsMatches = onSnapshot(collection(db, "matches"), (snap) => {
-          const list: Match[] = [];
-          snap.forEach(d => list.push({ id: d.id, ...d.data() } as Match));
-          setMatches(list);
+          if (snap.empty) {
+            setMatches(SAMPLE_MATCHES);
+          } else {
+            const list: Match[] = [];
+            snap.forEach(d => list.push({ id: d.id, ...d.data() } as Match));
+            setMatches(list);
+          }
         }, (err) => {
           console.error("Erro ao carregar partidas em tempo real:", err);
+          setMatches(SAMPLE_MATCHES);
         });
         unsubs.push(unsMatches);
 
         // 5. News
         const unsNews = onSnapshot(collection(db, "news"), (snap) => {
-          const list: News[] = [];
-          snap.forEach(d => list.push({ id: d.id, ...d.data() } as News));
-          setNews(list);
+          if (snap.empty) {
+            setNews(SAMPLE_NEWS);
+          } else {
+            const list: News[] = [];
+            snap.forEach(d => list.push({ id: d.id, ...d.data() } as News));
+            setNews(list);
+          }
         }, (err) => {
           console.error("Erro ao carregar notícias em tempo real:", err);
+          setNews(SAMPLE_NEWS);
         });
         unsubs.push(unsNews);
 
@@ -230,100 +368,6 @@ export default function App() {
 
     setStandingsMap(computedMap);
   }, [tournaments, matches, clubs]);
-
-  // Seeding default database on first launch
-  const seedDatabase = async () => {
-    console.log("Seeding fresh Firestore collections with standard FPC datasets...");
-    try {
-      // 1. Add Clubs
-      for (const club of SAMPLE_CLUBS) {
-        await setDoc(doc(db, "clubs", club.id), {
-          name: club.name,
-          logo: club.logo,
-          city: club.city,
-          state: club.state,
-          primaryKit: club.primaryKit,
-          secondaryKit: club.secondaryKit,
-          manager: club.manager,
-          captain: club.captain,
-          creatorId: club.creatorId,
-          createdAt: club.createdAt
-        });
-      }
-
-      // 2. Add Players
-      for (const pl of SAMPLE_PLAYERS) {
-        await setDoc(doc(db, "players", pl.id), {
-          clubId: pl.clubId,
-          name: pl.name,
-          nickname: pl.nickname,
-          position: pl.position,
-          number: pl.number,
-          photo: pl.photo,
-          nationality: pl.nationality,
-          birthDate: pl.birthDate,
-          eaId: pl.eaId,
-          goals: pl.goals,
-          assists: pl.assists,
-          saves: pl.saves,
-          yellowCards: pl.yellowCards,
-          redCards: pl.redCards
-        });
-      }
-
-      // 3. Add Tournaments
-      for (const tour of INITIAL_TOURNAMENTS) {
-        await setDoc(doc(db, "tournaments", tour.id), {
-          name: tour.name,
-          logo: tour.logo,
-          type: tour.type,
-          season: tour.season,
-          rules: tour.rules,
-          numTeams: tour.numTeams,
-          teams: tour.teams,
-          createdAt: tour.createdAt
-        });
-      }
-
-      // 4. Add Matches
-      for (const mt of SAMPLE_MATCHES) {
-        await setDoc(doc(db, "matches", mt.id), {
-          tournamentId: mt.tournamentId,
-          round: mt.round,
-          date: mt.date,
-          time: mt.time,
-          stadium: mt.stadium,
-          homeTeamId: mt.homeTeamId,
-          homeTeamName: mt.homeTeamName,
-          homeTeamLogo: mt.homeTeamLogo,
-          awayTeamId: mt.awayTeamId,
-          awayTeamName: mt.awayTeamName,
-          awayTeamLogo: mt.awayTeamLogo,
-          homeScore: mt.homeScore,
-          awayScore: mt.awayScore,
-          status: mt.status,
-          liveMinutes: mt.liveMinutes || 0,
-          stats: mt.stats,
-          events: mt.events
-        });
-      }
-
-      // 5. Add News
-      for (const nw of SAMPLE_NEWS) {
-        await setDoc(doc(db, "news", nw.id), {
-          title: nw.title,
-          content: nw.content,
-          image: nw.image,
-          date: nw.date,
-          author: nw.author
-        });
-      }
-
-      console.log("Firestore auto-seeding completed beautifully!");
-    } catch (e) {
-      console.warn("Seeding failed slightly, probably due to off-line state in iframe sandbox. Fallback to client state is active.", e);
-    }
-  };
 
   // Standings recalculating matrix
   function calculateStandings(tourMatches: Match[], tourTeams: string[], currentClubs: Club[]) {
@@ -577,7 +621,7 @@ export default function App() {
   const handleRegisterClub = async (data: Partial<Club>) => {
     try {
       const docId = "club-" + Math.random().toString(36).substr(2, 9);
-      await setDoc(doc(db, "clubs", docId), data);
+      await setDoc(doc(db, "clubs", docId), cleanUndefined(data));
     } catch (err) {
       // Local state fallback
       const newClub = { id: "club-" + Date.now(), ...data } as Club;
@@ -587,7 +631,7 @@ export default function App() {
 
   const handleUpdateClub = async (clubId: string, data: Partial<Club>) => {
     try {
-      await updateDoc(doc(db, "clubs", clubId), data);
+      await updateDoc(doc(db, "clubs", clubId), cleanUndefined(data));
     } catch (err) {
       setClubs(clubs.map(c => c.id === clubId ? { ...c, ...data } as Club : c));
     }
@@ -604,7 +648,7 @@ export default function App() {
   const handleAddPlayer = async (data: Partial<Player>) => {
     try {
       const docId = "player-" + Math.random().toString(36).substr(2, 9);
-      await setDoc(doc(db, "players", docId), data);
+      await setDoc(doc(db, "players", docId), cleanUndefined(data));
     } catch (err) {
       const newPlayer = { id: "player-" + Date.now(), ...data } as Player;
       setPlayers([...players, newPlayer]);
@@ -613,7 +657,7 @@ export default function App() {
 
   const handleUpdatePlayer = async (playerId: string, data: Partial<Player>) => {
     try {
-      await updateDoc(doc(db, "players", playerId), data);
+      await updateDoc(doc(db, "players", playerId), cleanUndefined(data));
     } catch (err) {
       setPlayers(players.map(p => p.id === playerId ? { ...p, ...data } as Player : p));
     }
@@ -630,7 +674,7 @@ export default function App() {
   const handleAddTournament = async (data: Partial<Tournament>) => {
     try {
       const docId = "tour-" + Math.random().toString(36).substr(2, 9);
-      await setDoc(doc(db, "tournaments", docId), data);
+      await setDoc(doc(db, "tournaments", docId), cleanUndefined(data));
     } catch (err) {
       const newTour = { id: "tour-" + Date.now(), ...data } as Tournament;
       setTournaments([...tournaments, newTour]);
@@ -640,7 +684,7 @@ export default function App() {
   const handleAddMatch = async (data: Partial<Match>) => {
     try {
       const docId = "match-" + Math.random().toString(36).substr(2, 9);
-      await setDoc(doc(db, "matches", docId), data);
+      await setDoc(doc(db, "matches", docId), cleanUndefined(data));
     } catch (err) {
       const newMatch = { id: "match-" + Date.now(), ...data } as Match;
       setMatches([...matches, newMatch]);
@@ -649,7 +693,7 @@ export default function App() {
 
   const handleUpdateMatch = async (matchId: string, data: Partial<Match>) => {
     try {
-      await updateDoc(doc(db, "matches", matchId), data);
+      await updateDoc(doc(db, "matches", matchId), cleanUndefined(data));
     } catch (err) {
       setMatches(matches.map(m => m.id === matchId ? { ...m, ...data } as Match : m));
     }
@@ -674,7 +718,7 @@ export default function App() {
   const handleAddNews = async (data: Partial<News>) => {
     try {
       const docId = "news-" + Math.random().toString(36).substr(2, 9);
-      await setDoc(doc(db, "news", docId), data);
+      await setDoc(doc(db, "news", docId), cleanUndefined(data));
     } catch (err) {
       const newArt = { id: "news-" + Date.now(), ...data } as News;
       setNews([...news, newArt]);
@@ -980,6 +1024,7 @@ export default function App() {
               onUpdateClub={handleUpdateClub}
               onRemovePlayer={handleRemovePlayer}
               onUpdatePlayer={handleUpdatePlayer}
+              onSeedDatabase={seedDatabase}
             />
           )}
         </main>

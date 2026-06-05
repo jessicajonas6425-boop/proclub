@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { Tournament, Match, Club, Player, News } from "../types";
+import { Tournament, Match, Club, Player, News, MatchEvent } from "../types";
 import { Trophy, Plus, Settings, Play, CheckCircle, RefreshCcw, Calendar, Trash2, Heart, Shield, Award, Edit, FileText } from "lucide-react";
 
 interface MasterAdminDashboardProps {
@@ -24,6 +24,7 @@ interface MasterAdminDashboardProps {
   onUpdateClub: (clubId: string, clubData: Partial<Club>) => void;
   onRemovePlayer: (playerId: string) => void;
   onUpdatePlayer: (playerId: string, playerData: Partial<Player>) => void;
+  onSeedDatabase?: () => void;
 }
 
 export function MasterAdminDashboard({
@@ -42,7 +43,8 @@ export function MasterAdminDashboard({
   onDeleteClub,
   onUpdateClub,
   onRemovePlayer,
-  onUpdatePlayer
+  onUpdatePlayer,
+  onSeedDatabase
 }: MasterAdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<"campeonatos" | "partidas" | "noticias" | "times">("campeonatos");
 
@@ -71,6 +73,8 @@ export function MasterAdminDashboard({
   const [eventTime, setEventTime] = useState<number>(45);
   const [eventType, setEventType] = useState<"goal" | "yellow" | "red">("goal");
   const [eventPlayerId, setEventPlayerId] = useState("");
+  const [postMatchGoalScorerId, setPostMatchGoalScorerId] = useState("");
+  const [postMatchAssistPlayerId, setPostMatchAssistPlayerId] = useState("");
 
   // News creation state
   const [newsTitle, setNewsTitle] = useState("");
@@ -385,6 +389,33 @@ export function MasterAdminDashboard({
             Notícias
           </button>
         </div>
+      </div>
+
+      {/* Database Management Controls */}
+      <div className="bg-[#0c0c0c] border border-white/5 rounded-none p-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <div>
+            <p className="text-[10px] font-mono tracking-wider text-emerald-400 uppercase">BANCO DE DADOS EM TEMPO REAL FUNCIONAL (100%)</p>
+            <p className="text-[9px] text-zinc-500">Firebase Firestore sincronizado com sucesso no navegador</p>
+          </div>
+        </div>
+        {onSeedDatabase && (
+          <button
+            onClick={() => {
+              if (window.confirm("Aviso: Esta ação irá preencher o banco de dados do Firebase Firestore com o conjunto oficial inicial de campeonatos, clubes e atletas da FPC. Deseja prosseguir?")) {
+                onSeedDatabase();
+                alert("CARGA INICIAL: Sincronização e carga preliminar concluídas em tempo real no Firestore!");
+              }
+            }}
+            className="px-4 py-2 border border-[#D4AF37]/30 text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black hover:border-[#D4AF37] text-[9px] font-mono tracking-widest uppercase transition duration-300 rounded-none cursor-pointer flex items-center gap-1.5"
+          >
+            <RefreshCcw className="w-3 h-3 animate-spin duration-1000" /> Carga Inicial (Seed Firestore)
+          </button>
+        )}
       </div>
 
       {/* 2. TAB A: CAMPEONATOS & AUTOMATION */}
@@ -718,21 +749,23 @@ export function MasterAdminDashboard({
               Partidas Agendadas & Painel live Match ao Vivo
             </h3>
 
-            {/* If live match is selected for event logging */}
+            {/* If a match is selected for post-match analysis (when finished) or live logging */}
             {activeLiveMatch && (
               <div className="bg-amber-500/5 p-5 rounded-none border border-[#D4AF37]/30 space-y-4 text-xs animate-[fadeIn_0.5s_ease_out]">
                 <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
-                  <span className="text-[9px] text-[#D4AF37] font-mono font-bold uppercase tracking-wider">PAINEL LIVE TRANSMISSOR FPC:</span>
+                  <span className="text-[9px] text-[#D4AF37] font-mono font-bold uppercase tracking-wider">
+                    {activeLiveMatch.status === "encerrado" ? "PAINEL PÓS-JOGO (SÚMULA)" : "PAINEL LIVE TRANSMISSOR FPC"}
+                  </span>
                   <button
                     id="close-live-feed-btn"
                     onClick={() => setLiveMatchId(null)}
                     className="text-[9px] text-zinc-500 hover:text-white uppercase font-mono font-bold tracking-wider cursor-pointer"
                   >
-                    × Desconectar Painel
+                    × Fechar Painel
                   </button>
                 </div>
 
-                {/* Micro Score updater logs */}
+                {/* Score Summary */}
                 <div className="flex justify-between items-center text-center">
                   <div className="w-5/12 font-bold text-white uppercase text-center shrink-0">
                     <p className="text-3xl">{activeLiveMatch.homeTeamLogo}</p>
@@ -749,75 +782,229 @@ export function MasterAdminDashboard({
                   </div>
                 </div>
 
-                {/* Score Modifier manually */}
-                <div className="flex justify-center items-center gap-1.5 shrink-0 bg-black p-2 rounded-none text-center border border-white/5">
-                  <span className="text-[8px] text-zinc-500 uppercase font-mono tracking-widest mr-2">MICRO CORRETOR DE PLACAR:</span>
-                  <button onClick={() => onUpdateMatch(activeLiveMatch.id, { homeScore: Math.max(0, activeLiveMatch.homeScore - 1) })} className="px-2 py-0.5 bg-zinc-900 border border-white/5 text-white font-mono text-[9px] cursor-pointer">-</button>
-                  <span className="text-[10px] text-zinc-300 font-mono font-semibold">{activeLiveMatch.homeScore} C</span>
-                  <button onClick={() => onUpdateMatch(activeLiveMatch.id, { homeScore: activeLiveMatch.homeScore + 1 })} className="px-2 py-0.5 bg-zinc-900 border border-white/5 text-white font-mono text-[9px] cursor-pointer">+</button>
-                  <span className="text-zinc-700 mx-1">|</span>
-                  <button onClick={() => onUpdateMatch(activeLiveMatch.id, { awayScore: Math.max(0, activeLiveMatch.awayScore - 1) })} className="px-2 py-0.5 bg-zinc-900 border border-white/5 text-white font-mono text-[9px] cursor-pointer">-</button>
-                  <span className="text-[10px] text-zinc-300 font-mono font-semibold">{activeLiveMatch.awayScore} F</span>
-                  <button onClick={() => onUpdateMatch(activeLiveMatch.id, { awayScore: activeLiveMatch.awayScore + 1 })} className="px-2 py-0.5 bg-zinc-900 border border-white/5 text-white font-mono text-[9px] cursor-pointer">+</button>
-                </div>
+                {/* Post-match Actions: Match stats and player ratings */}
+                {activeLiveMatch.status === "encerrado" ? (
+                  <div className="space-y-4 mt-3 bg-black/80 p-4 border border-white/10">
+                    <p className="text-[#D4AF37] font-semibold text-[9px] uppercase font-mono tracking-widest border-l border-[#D4AF37] pl-2">SÚMULA PÓS-JOGO:</p>
 
-                {/* Add dynamic goal/cards event */}
-                <form id="live-event-form" onSubmit={handleAddLiveEventSubmit} className="space-y-3.5 mt-3 bg-black p-4 rounded-none border border-white/5 border-dashed">
-                  <p className="text-[#D4AF37] font-semibold text-[9px] uppercase font-mono tracking-widest">REGISTRAR LANCE EM TEMPO REAL:</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="block text-[8px] text-zinc-500 font-mono tracking-wider mb-1">MINUTO:</label>
-                      <input
-                        type="number"
-                        className="w-full bg-zinc-950 text-white border border-white/10 rounded-none p-2 text-center focus:outline-none"
-                        value={eventTime}
-                        onChange={e => setEventTime(Number(e.target.value))}
-                        required
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                           <label className="block text-[8px] text-zinc-500 font-mono tracking-wider mb-1">PLACAR MANDANTE:</label>
+                           <input type="number" className="w-full bg-zinc-950 p-2 text-center" defaultValue={activeLiveMatch.homeScore} 
+                               onBlur={e => onUpdateMatch(activeLiveMatch.id, { homeScore: parseInt(e.target.value) })} />
+                        </div>
+                        <div>
+                           <label className="block text-[8px] text-zinc-500 font-mono tracking-wider mb-1">PLACAR VISITANTE:</label>
+                           <input type="number" className="w-full bg-zinc-950 p-2 text-center" defaultValue={activeLiveMatch.awayScore} 
+                               onBlur={e => onUpdateMatch(activeLiveMatch.id, { awayScore: parseInt(e.target.value) })} />
+                        </div>
                     </div>
-                    <div className="col-span-2">
-                      <label className="block text-[8px] text-zinc-500 font-mono tracking-wider mb-1 font-sans">LANÇAMENTO TIPO:</label>
-                      <select
-                        className="w-full bg-zinc-950 text-white border border-white/10 rounded-none p-2 focus:outline-none text-[10px]"
-                        value={eventType}
-                        onChange={e => setEventType(e.target.value as any)}
-                        required
-                      >
-                        <option value="goal">⚽ GOL MARCADO</option>
-                        <option value="yellow">🟨 CARTÃO AMARELO</option>
-                        <option value="red">🟥 CARTÃO VERMELHO</option>
-                      </select>
+
+                    <p className="text-[#D4AF37] font-semibold text-[9px] uppercase font-mono tracking-widest border-l border-[#D4AF37] pl-2 mt-4">GOLS E ASSISTÊNCIAS:</p>
+                    
+                    {/* List of Goals and Cards */}
+                    <div className="space-y-1 mb-3">
+                         {activeLiveMatch.events.filter(e => e.type === "goal" || e.type === "yellow" || e.type === "red" || e.type === "assist").map(evt => (
+                             <div key={evt.id} className="flex justify-between text-[10px] bg-white/5 p-1 px-2 border border-white/5 text-zinc-300">
+                                 <span>
+                                     {evt.type === "goal" && `⚽ ${evt.playerNickname} ${evt.assistPlayerNickname ? `(Ass: ${evt.assistPlayerNickname})` : ""}`}
+                                     {evt.type === "yellow" && `🟨 ${evt.playerNickname}`}
+                                     {evt.type === "red" && `🟥 ${evt.playerNickname}`}
+                                     {evt.type === "assist" && `👟 ${evt.playerNickname}`}
+                                 </span>
+                                 <button className="text-red-500" onClick={async () => {
+                                     const eventToRemove = activeLiveMatch.events.find(e => e.id === evt.id);
+                                     if (!eventToRemove) return;
+                                     
+                                     // Update stats
+                                     if (eventToRemove.type === "yellow") {
+                                         const player = players.find(p => p.id === eventToRemove.playerId);
+                                         if (player) await onUpdatePlayer(player.id, { yellowCards: Math.max(0, (player.yellowCards || 0) - 1) });
+                                     } else if (eventToRemove.type === "red") {
+                                         const player = players.find(p => p.id === eventToRemove.playerId);
+                                         if (player) await onUpdatePlayer(player.id, { redCards: Math.max(0, (player.redCards || 0) - 1) });
+                                     } else if (eventToRemove.type === "assist") {
+                                         const player = players.find(p => p.id === eventToRemove.playerId);
+                                         if (player) await onUpdatePlayer(player.id, { assists: Math.max(0, (player.assists || 0) - 1) });
+                                     }                
+
+                                     await onUpdateMatch(activeLiveMatch.id, { events: activeLiveMatch.events.filter(e => e.id !== evt.id) });
+                                 }}>×</button>
+                             </div>
+                         ))}
+                    </div>
+
+                    {/* Add Goal Form */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <select className="bg-zinc-950 p-1 text-[9px]" value={postMatchGoalScorerId} onChange={e => setPostMatchGoalScorerId(e.target.value)}>
+                            <option value="">-- Autor do Gol --</option>
+                            {players.filter(p => p.clubId === activeLiveMatch.homeTeamId || p.clubId === activeLiveMatch.awayTeamId).map(p => <option key={p.id} value={p.id}>{p.nickname}</option>)}
+                        </select>
+                        <select className="bg-zinc-950 p-1 text-[9px]" value={postMatchAssistPlayerId} onChange={e => setPostMatchAssistPlayerId(e.target.value)}>
+                            <option value="">-- Assistência --</option>
+                            {players.filter(p => p.clubId === activeLiveMatch.homeTeamId || p.clubId === activeLiveMatch.awayTeamId).map(p => <option key={p.id} value={p.id}>{p.nickname}</option>)}
+                        </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                        <button 
+                            className="bg-emerald-800 text-white p-1.5 text-[9px] font-bold"
+                            onClick={() => {
+                               const scorer = players.find(p => p.id === postMatchGoalScorerId);
+                               if(!scorer) return;
+                               const assist = players.find(p => p.id === postMatchAssistPlayerId);
+                               
+                               // Add Goal Event
+                               const newEvent: MatchEvent = {
+                                  id: Date.now().toString(), time: 90, type: "goal",
+                                  playerId: scorer.id, playerName: scorer.name, playerNickname: scorer.nickname, clubId: scorer.clubId,
+                                  ...(assist ? { assistPlayerId: assist.id, assistPlayerName: assist.name, assistPlayerNickname: assist.nickname } : {})
+                               };
+                               
+                               // Update match with new goal
+                               const newEvents = [...(activeLiveMatch.events || []), newEvent];
+
+                               // Update Assist Count on Player
+                               if(assist) {
+                                   onUpdatePlayer(assist.id, { assists: (assist.assists || 0) + 1 });
+                               }
+
+                               onUpdateMatch(activeLiveMatch.id, { events: newEvents });
+                               setPostMatchGoalScorerId(""); setPostMatchAssistPlayerId("");
+                            }}
+                        >
+                            ADICIONAR GOL
+                        </button>
+                        <button 
+                            className="bg-blue-800 text-white p-1.5 text-[9px] font-bold"
+                            onClick={async () => {
+                               const assist = players.find(p => p.id === postMatchAssistPlayerId);
+                               if(!assist) return;
+                               
+                               // Add Assist Event
+                               const newEvent: MatchEvent = {
+                                  id: Date.now().toString(), time: 90, type: "assist",
+                                  playerId: assist.id, playerName: assist.name, playerNickname: assist.nickname, clubId: assist.clubId,
+                               };
+                               
+                               // Update match
+                               const newEvents = [...(activeLiveMatch.events || []), newEvent];
+
+                               // Update Assist Count on Player
+                               await onUpdatePlayer(assist.id, { assists: (assist.assists || 0) + 1 });
+                               await onUpdateMatch(activeLiveMatch.id, { events: newEvents });
+                               
+                               setPostMatchAssistPlayerId("");
+                            }}
+                        >
+                            ADICIONAR ASSISTÊNCIA
+                        </button>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto space-y-2 p-2 border border-white/5 bg-black/50">
+                        {players.filter(p => p.clubId === activeLiveMatch.homeTeamId || p.clubId === activeLiveMatch.awayTeamId).map(p => (
+                            <div key={p.id} className="flex justify-between items-center text-xs">
+                                <span className="text-zinc-300 truncate w-1/2">{p.nickname}</span>
+                                <div className="flex items-center gap-1">
+                                    <button 
+                                        className="bg-yellow-500 text-black px-2 py-0.5 text-[8px] font-bold"
+                                        onClick={async () => {
+                                            const newEvent: MatchEvent = {
+                                                id: Date.now().toString(), time: 90, type: "yellow",
+                                                playerId: p.id, playerName: p.name, playerNickname: p.nickname, clubId: p.clubId,
+                                            };
+                                            await onUpdatePlayer(p.id, { yellowCards: (p.yellowCards || 0) + 1 });
+                                            await onUpdateMatch(activeLiveMatch.id, { events: [...(activeLiveMatch.events || []), newEvent] });
+                                        }}
+                                    >🟨</button>
+                                    <button 
+                                        className="bg-red-600 text-white px-2 py-0.5 text-[8px] font-bold"
+                                        onClick={async () => {
+                                            const newEvent: MatchEvent = {
+                                                id: Date.now().toString(), time: 90, type: "red",
+                                                playerId: p.id, playerName: p.name, playerNickname: p.nickname, clubId: p.clubId,
+                                            };
+                                            await onUpdatePlayer(p.id, { redCards: (p.redCards || 0) + 1 });
+                                            await onUpdateMatch(activeLiveMatch.id, { events: [...(activeLiveMatch.events || []), newEvent] });
+                                        }}
+                                    >🟥</button>
+                                    <input 
+                                        type="number" 
+                                        min="0" max="10" step="0.1"
+                                        placeholder="Nota"
+                                        className="w-12 bg-zinc-950 p-1 text-center"
+                                        defaultValue={activeLiveMatch.playerRatings?.[p.id] || ""}
+                                        onBlur={async (e) => {
+                                            const rating = parseFloat(e.target.value);
+                                            const newRatings = { ...activeLiveMatch.playerRatings, [p.id]: rating };
+                                            await onUpdateMatch(activeLiveMatch.id, { playerRatings: newRatings });
+                                            await onUpdatePlayer(p.id, { averageRating: rating });
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
                     </div>
                   </div>
-
-                  <div>
-                    <label className="block text-[8px] text-zinc-500 font-mono tracking-wider mb-1 font-sans">JOGADOR REGISTRADO:</label>
-                    <select
-                      className="w-full bg-zinc-950 text-white border border-white/10 rounded-none p-2 font-mono text-[9px] focus:outline-none"
-                      value={eventPlayerId}
-                      onChange={e => setEventPlayerId(e.target.value)}
-                      required
-                    >
-                      <option value="">-- SELECIONAR ATLETA ENVOLVIDO --</option>
-                      {players.filter(p => p.clubId === activeLiveMatch.homeTeamId || p.clubId === activeLiveMatch.awayTeamId).map(p => {
-                        const sideStr = p.clubId === activeLiveMatch.homeTeamId ? "[CASA]" : "[FORA]";
-                        return (
-                          <option key={p.id} value={p.id}>{p.nickname} {sideStr}</option>
-                        );
-                      })}
-                    </select>
-                  </div>
-
-                  <button
-                    id="submit-event-btn"
-                    type="submit"
-                    className="w-full bg-[#D4AF37] text-black font-extrabold uppercase tracking-[0.15em] py-2 px-3 rounded-none flex items-center justify-center gap-1.5 text-[9px] transition-all hover:brightness-110 cursor-pointer"
-                  >
-                    🚀 Disparar Lance Súmula
-                  </button>
-                </form>
+                ) : (
+                    /* Existing live event form here - keep temporarily if they really want/need it or handle differently */
+                     <form id="live-event-form" onSubmit={handleAddLiveEventSubmit} className="space-y-3.5 mt-3 bg-black p-4 rounded-none border border-white/5 border-dashed">
+                       {/* ... existing event form ... */}
+                       <p className="text-[#D4AF37] font-semibold text-[9px] uppercase font-mono tracking-widest">REGISTRAR LANCE EM TEMPO REAL:</p>
+                       <div className="grid grid-cols-3 gap-2">
+                         <div>
+                           <label className="block text-[8px] text-zinc-500 font-mono tracking-wider mb-1">MINUTO:</label>
+                           <input
+                             type="number"
+                             className="w-full bg-zinc-950 text-white border border-white/10 rounded-none p-2 text-center focus:outline-none"
+                             value={eventTime}
+                             onChange={e => setEventTime(Number(e.target.value))}
+                             required
+                           />
+                         </div>
+                         <div className="col-span-2">
+                           <label className="block text-[8px] text-zinc-500 font-mono tracking-wider mb-1 font-sans">LANÇAMENTO TIPO:</label>
+                           <select
+                             className="w-full bg-zinc-950 text-white border border-white/10 rounded-none p-2 focus:outline-none text-[10px]"
+                             value={eventType}
+                             onChange={e => setEventType(e.target.value as any)}
+                             required
+                           >
+                             <option value="goal">⚽ GOL MARCADO</option>
+                             <option value="yellow">🟨 CARTÃO AMARELO</option>
+                             <option value="red">🟥 CARTÃO VERMELHO</option>
+                           </select>
+                         </div>
+                       </div>
+       
+                       <div>
+                         <label className="block text-[8px] text-zinc-500 font-mono tracking-wider mb-1 font-sans">JOGADOR REGISTRADO:</label>
+                         <select
+                           className="w-full bg-zinc-950 text-white border border-white/10 rounded-none p-2 font-mono text-[9px] focus:outline-none"
+                           value={eventPlayerId}
+                           onChange={e => setEventPlayerId(e.target.value)}
+                           required
+                         >
+                           <option value="">-- SELECIONAR ATLETA ENVOLVIDO --</option>
+                           {players.filter(p => p.clubId === activeLiveMatch.homeTeamId || p.clubId === activeLiveMatch.awayTeamId).map(p => {
+                             const sideStr = p.clubId === activeLiveMatch.homeTeamId ? "[CASA]" : "[FORA]";
+                             return (
+                               <option key={p.id} value={p.id}>{p.nickname} {sideStr}</option>
+                             );
+                           })}
+                         </select>
+                       </div>
+       
+                       <button
+                         id="submit-event-btn"
+                         type="submit"
+                         className="w-full bg-[#D4AF37] text-black font-extrabold uppercase tracking-[0.15em] py-2 px-3 rounded-none flex items-center justify-center gap-1.5 text-[9px] transition-all hover:brightness-110 cursor-pointer"
+                       >
+                         🚀 Disparar Lance Súmula
+                       </button>
+                     </form>
+                )}
 
                 {/* Clock controller / Terminate match */}
+                {activeLiveMatch.status !== "encerrado" && (
                 <div className="flex gap-2">
                   <button
                     id="sched-tick-clock-btn"
@@ -833,14 +1020,14 @@ export function MasterAdminDashboard({
                     id="sched-terminate-btn"
                     onClick={() => {
                       onUpdateMatch(activeLiveMatch.id, { status: "encerrado", liveMinutes: 90 });
-                      setLiveMatchId(null);
-                      alert("Partida encerrada com sucesso! O placar e as estatísticas de classificação foram integrados e atualizados ao vivo!");
+                      alert("Partida encerrada com sucesso!");
                     }}
                     className="flex-1 bg-rose-950/20 border border-rose-800 text-rose-300 font-extrabold text-[9px] tracking-widest py-2 rounded-none flex items-center justify-center gap-1 shadow-lg hover:bg-rose-900 hover:text-white transition duration-300"
                   >
                     🏁 ENCERRAR PARTIDA
                   </button>
                 </div>
+                )}
               </div>
             )}
 

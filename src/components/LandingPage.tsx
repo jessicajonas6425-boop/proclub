@@ -58,6 +58,17 @@ export function LandingPage({
 }: LandingPageProps) {
   const [activeTab, setActiveTab] = useState<"tabelas" | "mercado" | "rankings" | "protestos" | "noticias">("tabelas");
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>(tournaments[0]?.id || "t-1");
+
+  // Synchronize selection with actual loaded tournaments
+  React.useEffect(() => {
+    if (tournaments.length > 0) {
+      const exists = tournaments.some(t => t.id === selectedTournamentId);
+      if (!exists || selectedTournamentId === "t-1") {
+        setSelectedTournamentId(tournaments[0].id);
+      }
+    }
+  }, [tournaments, selectedTournamentId]);
+
   const [chatMessage, setChatMessage] = useState("");
   const [protestTitle, setProtestTitle] = useState("");
   const [protestDesc, setProtestDesc] = useState("");
@@ -219,7 +230,7 @@ export function LandingPage({
                       <div key={i} className="flex justify-between items-center text-[11px]">
                         <span className="text-[#D4AF37] font-mono font-semibold">{ev.time}&apos;</span>
                         <span className="text-zinc-300 font-medium font-sans truncate ml-2">
-                          {ev.type === "goal" ? "⚽ GOL! " : ev.type === "yellow" ? "🟨 Cartão Amarelo - " : "🟥 Cartão Vermelho! "}
+                          {ev.type === "goal" ? "⚽ GOL! " : ev.type === "yellow" ? "🟨 Cartão Amarelo - " : ev.type === "assist" ? "👟 Assistência! " : "🟥 Cartão Vermelho! "}
                           {ev.playerNickname}
                         </span>
                       </div>

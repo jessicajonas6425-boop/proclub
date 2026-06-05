@@ -33,6 +33,7 @@ export interface Player {
   saves: number;
   yellowCards: number;
   redCards: number;
+  averageRating: number;
 }
 
 export type TournamentType = "Liga" | "Copa" | "Super Copa" | "Mata-Mata" | "Pontos Corridos";
@@ -54,11 +55,14 @@ export interface Tournament {
 export interface MatchEvent {
   id: string;
   time: number;
-  type: "goal" | "yellow" | "red";
+  type: "goal" | "yellow" | "red" | "assist";
   playerId: string;
   playerName: string;
   playerNickname: string;
   clubId: string;
+  assistPlayerId?: string;
+  assistPlayerName?: string;
+  assistPlayerNickname?: string;
 }
 
 export interface MatchStats {
@@ -90,6 +94,7 @@ export interface Match {
   liveMinutes?: number;
   stats: MatchStats;
   events: MatchEvent[];
+  playerRatings?: { [playerId: string]: number };
 }
 
 export interface Standing {
