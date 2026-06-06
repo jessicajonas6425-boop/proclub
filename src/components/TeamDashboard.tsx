@@ -17,6 +17,7 @@ interface TeamDashboardProps {
   onUpdatePlayer: (playerId: string, playerData: Partial<Player>) => void;
   onRemovePlayer: (playerId: string) => void;
   authUserId: string;
+  isRegistrationOpen: boolean;
 }
 
 export function TeamDashboard({
@@ -28,7 +29,8 @@ export function TeamDashboard({
   onAddPlayer,
   onUpdatePlayer,
   onRemovePlayer,
-  authUserId
+  authUserId,
+  isRegistrationOpen
 }: TeamDashboardProps) {
   // Roster addition state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -300,13 +302,14 @@ export function TeamDashboard({
               {myClub && (
                 <button
                   id="btn-show-add-player"
+                  disabled={!isRegistrationOpen}
                   onClick={() => {
                     setEditingPlayerId(null);
                     setShowAddForm(!showAddForm);
                   }}
-                  className="bg-transparent border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black font-bold text-[9px] uppercase tracking-wider py-2 px-4 rounded-none flex items-center gap-1 transition-all duration-300"
+                  className={`bg-transparent border ${isRegistrationOpen ? 'border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black' : 'border-zinc-800 text-zinc-700'} font-bold text-[9px] uppercase tracking-wider py-2 px-4 rounded-none flex items-center gap-1 transition-all duration-300 ${isRegistrationOpen ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                 >
-                  <Plus size={12} /> Add Atleta
+                  <Plus size={12} /> {isRegistrationOpen ? "Add Atleta" : "Janela Fechada"}
                 </button>
               )}
             </div>

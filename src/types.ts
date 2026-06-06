@@ -33,7 +33,7 @@ export interface Player {
   saves: number;
   yellowCards: number;
   redCards: number;
-  averageRating: number;
+  averageRating?: number;
 }
 
 export type TournamentType = "Liga" | "Copa" | "Super Copa" | "Mata-Mata" | "Pontos Corridos";

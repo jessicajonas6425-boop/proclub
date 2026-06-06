@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import { Tournament, Match, Club, Player, News, MatchEvent } from "../types";
-import { Trophy, Plus, Settings, Play, CheckCircle, RefreshCcw, Calendar, Trash2, Heart, Shield, Award, Edit, FileText } from "lucide-react";
+import { Trophy, Plus, Settings, Play, CheckCircle, RefreshCcw, Calendar, Trash2, Heart, Shield, Award, Edit, FileText, ShieldAlert } from "lucide-react";
 
 interface MasterAdminDashboardProps {
   tournaments: Tournament[];
@@ -25,6 +25,8 @@ interface MasterAdminDashboardProps {
   onRemovePlayer: (playerId: string) => void;
   onUpdatePlayer: (playerId: string, playerData: Partial<Player>) => void;
   onSeedDatabase?: () => void;
+  isRegistrationOpen: boolean;
+  onToggleRegistration: (isOpen: boolean) => void;
 }
 
 export function MasterAdminDashboard({
@@ -44,7 +46,9 @@ export function MasterAdminDashboard({
   onUpdateClub,
   onRemovePlayer,
   onUpdatePlayer,
-  onSeedDatabase
+  onSeedDatabase,
+  isRegistrationOpen,
+  onToggleRegistration
 }: MasterAdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<"campeonatos" | "partidas" | "noticias" | "times">("campeonatos");
 
@@ -391,8 +395,34 @@ export function MasterAdminDashboard({
         </div>
       </div>
 
-      {/* Database Management Controls */}
-      <div className="bg-[#0c0c0c] border border-white/5 rounded-none p-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+      {/* Administration Settings */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Registration Window Control */}
+        <div className="bg-[#0c0c0c] border border-white/5 rounded-none p-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+             <div className={`p-2 ${isRegistrationOpen ? "bg-emerald-950/30 text-emerald-400" : "bg-red-950/30 text-red-400"}`}>
+                {isRegistrationOpen ? <CheckCircle size={16} /> : <ShieldAlert size={16} />}
+             </div>
+             <div>
+                <p className="text-[10px] font-mono tracking-wider text-zinc-100 uppercase">JANELA DE REGISTRO: {isRegistrationOpen ? "ABERTA" : "FECHADA"}</p>
+                <p className="text-[9px] text-zinc-500">{isRegistrationOpen ? "Administradores podem registrar novos atletas." : "Registro de novos atletas está pausado."}</p>
+             </div>
+          </div>
+          <button
+            onClick={() => onToggleRegistration(!isRegistrationOpen)}
+            className={`px-4 py-2 border text-[9px] font-mono tracking-widest uppercase transition duration-300 rounded-none cursor-pointer ${
+              isRegistrationOpen
+                ? "border-red-500/30 text-red-400 hover:bg-red-500 hover:text-black"
+                : "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-black"
+            }`}
+          >
+            {isRegistrationOpen ? "Fechar Janela" : "Abrir Janela"}
+          </button>
+        </div>
+
+        {/* Database Management Controls */}
+        <div className="bg-[#0c0c0c] border border-white/5 rounded-none p-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+
         <div className="flex items-center gap-2.5">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -416,6 +446,7 @@ export function MasterAdminDashboard({
             <RefreshCcw className="w-3 h-3 animate-spin duration-1000" /> Carga Inicial (Seed Firestore)
           </button>
         )}
+      </div>
       </div>
 
       {/* 2. TAB A: CAMPEONATOS & AUTOMATION */}

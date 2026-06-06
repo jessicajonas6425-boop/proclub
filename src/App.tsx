@@ -147,9 +147,23 @@ export default function App() {
   // Computed Team Standings Map
   const [standingsMap, setStandingsMap] = useState<TournamentStandingsMap>({});
 
-  // 6-second premium splash states
-  const [showSplash, setShowSplash] = useState(true);
-  const [splashProgress, setSplashProgress] = useState(0);
+  // Registration Window state
+  const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
+
+  // Load registration settings
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "systemSettings", "registration"), (doc) => {
+      if (doc.exists()) {
+        setIsRegistrationOpen(doc.data().isOpen);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const handleToggleRegistration = async (isOpen: boolean) => {
+    await setDoc(doc(db, "systemSettings", "registration"), { isOpen }, { merge: true });
+    setIsRegistrationOpen(isOpen);
+  };
 
   // Custom Authentication Modal states
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -161,22 +175,6 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const [authSuccess, setAuthSuccess] = useState("");
   const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
-
-  useEffect(() => {
-    const startTime = Date.now();
-    const duration = 6000; // 6 seconds
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const pct = Math.min(100, Math.floor((elapsed / duration) * 100));
-      setSplashProgress(pct);
-      if (elapsed >= duration) {
-        clearInterval(interval);
-        setShowSplash(false);
-      }
-    }, 50);
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Listen to Authentication State
   useEffect(() => {
@@ -820,77 +818,6 @@ export default function App() {
     goalsCount: matches.reduce((acc, current) => acc + (current.status === "encerrado" ? current.homeScore + current.awayScore : 0), 0)
   };
 
-  if (showSplash) {
-    return (
-      <div className="fixed inset-0 z-[9999] bg-[#030303] flex flex-col justify-between items-center p-6 select-none font-sans overflow-hidden">
-        {/* Ambient Glowing background spotlight */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#D4AF37]/5 rounded-full blur-[120px] pointer-events-none" />
-        
-        {/* Top brand signature */}
-        <div className="animate-pulse text-zinc-500 font-mono text-[9px] tracking-[0.3em] uppercase mt-4 flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]"></span>
-          <span>Série Épica • Sistema de Alta Performance</span>
-        </div>
-
-        {/* Center Content: Logo, beautiful crest, elegant glow and title */}
-        <div className="flex flex-col items-center text-center space-y-6 max-w-sm">
-          {/* Main Logo frame with light-sweep and gold shadow */}
-          <div className="relative group w-48 h-48 rounded-xs border border-[#D4AF37]/25 p-2 bg-gradient-to-b from-[#111] to-black shadow-[0_0_50px_rgba(212,175,55,0.18)] flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#D4AF37]/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-            <img 
-              src="https://i.ibb.co/xqJFZnyX/Chat-GPT-Image-5-de-jun-de-2026-16-06-46.png" 
-              alt="FPC Brand Emblem" 
-              className="w-full h-full object-cover rounded-none select-none pointer-events-none"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-xl sm:text-2xl font-light tracking-[0.2em] text-white uppercase font-display">
-              FEDERAÇÃO <span className="font-extrabold text-[#D4AF37]">PRO CLUBS</span>
-            </h2>
-            <p className="text-zinc-500 text-[10px] uppercase tracking-[0.15em] font-mono">
-              Futebol Competitivo de Elite • FPC
-            </p>
-          </div>
-        </div>
-
-        {/* Bottom Progress Controls */}
-        <div className="w-full max-w-xs space-y-4 mb-8">
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-[10px] font-mono uppercase text-zinc-400">
-              <span className="tracking-[0.1em]">Sincronizando Módulos...</span>
-              <span className="text-[#D4AF37] font-bold">{splashProgress}%</span>
-            </div>
-            {/* Elegant luxury loading bar */}
-            <div className="w-full h-[3px] bg-white/[0.03] border border-white/5 p-[1px] relative overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-[#B8972C] to-[#D4AF37] transition-all duration-75 relative"
-                style={{ width: `${splashProgress}%` }}
-              >
-                <div className="absolute right-0 top-0 h-full w-4 bg-white shadow-[0_0_8px_#D4AF37]" />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center gap-4">
-            {/* Countdown seconds remaining indicator */}
-            <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest leading-none">
-              Início em: {Math.max(1, Math.ceil((100 - splashProgress) * 0.06))}s
-            </span>
-            {/* Classy skip trigger */}
-            <button
-              onClick={() => setShowSplash(false)}
-              className="text-[9px] font-mono font-bold tracking-[0.15em] text-zinc-400 hover:text-white uppercase py-1 px-3 border border-white/10 hover:border-[#D4AF37]/50 rounded-xs transition duration-300"
-            >
-              PULAR ABERTURA
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div id="main-container" className="min-h-screen bg-[#050505] text-zinc-100 selection:bg-[#D4AF37]/50 selection:text-black relative overflow-hidden font-sans">
       {/* Dynamic Brand Ambient Background Glow Lights */}
@@ -1003,6 +930,7 @@ export default function App() {
               onUpdatePlayer={handleUpdatePlayer}
               onRemovePlayer={handleRemovePlayer}
               authUserId={currentUser?.uid || "mock-authorized-token"}
+              isRegistrationOpen={isRegistrationOpen}
             />
           )}
 
@@ -1025,6 +953,8 @@ export default function App() {
               onRemovePlayer={handleRemovePlayer}
               onUpdatePlayer={handleUpdatePlayer}
               onSeedDatabase={seedDatabase}
+              isRegistrationOpen={isRegistrationOpen}
+              onToggleRegistration={handleToggleRegistration}
             />
           )}
         </main>
@@ -1049,7 +979,6 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Custom Authentication Modal Overlay */}
       {isAuthModalOpen && (
         <div id="auth-modal" className="fixed inset-0 z-[10000] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#0A0A0A] border border-[#D4AF37]/40 shadow-[0_0_50px_rgba(212,175,55,0.15)] overflow-hidden relative p-6 sm:p-8 flex flex-col space-y-6">
@@ -1235,7 +1164,6 @@ export default function App() {
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       )}

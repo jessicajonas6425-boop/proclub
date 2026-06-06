@@ -210,6 +210,15 @@
     "protests/{protestId}": {
       "schema": { "$ref": "#/entities/Protest" },
       "description": "Match board conflict resolution protests"
+    },
+    "systemSettings/{settingId}": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "isOpen": { "type": "boolean" }
+        }
+      },
+      "description": "Global application settings"
     }
   }
 }
